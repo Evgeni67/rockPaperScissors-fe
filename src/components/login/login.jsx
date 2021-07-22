@@ -93,6 +93,7 @@ class Login extends Component {
     const that = this;
     setTimeout(function () {
       that.setState({ registering: false });
+      that.setState({ showLoginBtn: true });
     }, 1100);
   };
   render() {
@@ -159,7 +160,7 @@ class Login extends Component {
                       <img
                         className="picPreview"
                         src={URL.createObjectURL(
-                          document.querySelector("#postImage").files[0]
+                          this.state.image
                         )}
                       />{" "}
                     </Row>
