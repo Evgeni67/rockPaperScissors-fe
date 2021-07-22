@@ -111,6 +111,13 @@ class Chat extends Component {
     socket.on("sendMsg", (msg) =>
      this.loadPreviousConvo(this.state.to)
     );
+    socket.on("logOut", (name) =>
+      this.setState({
+        onlineProfiles: this.state.onlineProfiles.filter(
+          (profile) => profile.name !== name
+        ),
+      })
+    );
     socket.on("login", (user) =>
       this.setState({ onlineProfiles: this.state.onlineProfiles.concat(user) })
     );
@@ -124,13 +131,7 @@ class Chat extends Component {
     })
       .then((response) => response.json())
       .then((data) => this.setState({ me: data.profilePic }));
-    socket.on("logOut", (name) =>
-      this.setState({
-        onlineProfiles: this.state.onlineProfiles.filter(
-          (profile) => profile.name !== name
-        ),
-      })
-    );
+    
     //listening to any event of type "sendMsg" and reacting by calling the function
     //that will append a new message to the "messages" array
     const url = process.env.REACT_APP_URL + "/profiles/getOnlineProfiles";
