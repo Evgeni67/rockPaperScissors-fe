@@ -22,6 +22,9 @@ class Login extends Component {
     id : ""
   };
   saveTokensLocally = (data1) => {
+    try{
+
+    
     console.log(data1);
     const data = data1[0];
     console.log("TOKENS", data);
@@ -31,6 +34,9 @@ class Login extends Component {
     this.setState({ logged: true });
     socket.emit("login", data1[1]);
     window.location = "/chat";
+  }catch(e){
+    alert("Wrong password")
+  }
   };
   login = async () => {
     console.log(process.env.REACT_APP_URL);

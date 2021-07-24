@@ -29,6 +29,10 @@
  width: 100%;
  height:50px
 }
+.challangeIcon{
+    margin-top: 5px;
+    margin-left: 5px;
+}
 .profilePic1{
     width:50px;
     border-radius: 50px;

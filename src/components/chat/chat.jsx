@@ -4,6 +4,7 @@ import { Row, Container } from "react-bootstrap";
 import "./chat.css";
 import logo from "./chatImg.jpg";
 import io from "socket.io-client";
+import {SiRiotgames} from "react-icons/si"
 var uniqid = require("uniqid");
 const connOpt = {
   transports: ["websocket"], // socket connectin options
@@ -121,19 +122,10 @@ class Chat extends Component {
     socket.on("login", (user) =>
       this.setState({ onlineProfiles: this.state.onlineProfiles.concat(user) })
     );
-    const url1 = process.env.REACT_APP_URL + "/profiles/me";
-    await fetch(url1, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-      },
-    })
-      .then((response) => response.json())
-      .then((data) => this.setState({ me: data.profilePic }));
-    
-    //listening to any event of type "sendMsg" and reacting by calling the function
-    //that will append a new message to the "messages" array
+  this.getOnlineProfiles()
+  };
+  getOnlineProfiles =async  () => {
+    console.log("online profiles")
     const url = process.env.REACT_APP_URL + "/profiles/getOnlineProfiles";
     const requestOptions = {
       method: "GET",
@@ -143,9 +135,8 @@ class Chat extends Component {
     };
     await fetch(url, requestOptions)
       .then((response) => response.json())
-      .then((data) => this.setState({ onlineProfiles: data }));
-  };
-
+      .then((data) => this.setState({onlineProfiles:data}));
+  }
   render() {
     return (
       <>
@@ -173,7 +164,7 @@ class Chat extends Component {
                   onClick={() => this.loadPreviousConvo(profile.name)}
                 >
                   <p className="onlineUser">
-                    <h>{profile.name}</h>
+                    <h>{profile.name}</h> <SiRiotgames className = "challangeIcon"/>
                   </p>
                 </Row>
               ))}
