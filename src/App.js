@@ -2,6 +2,7 @@ import "./App.css";
 import Login from "./components/login/login";
 import Chat from "./components/chat/chat";
 import BattleGround from "./components/battleGround/battleGround";
+import BattleGroundAI from "./components/battleGroundAI/battleGroundAI";
 import React, { Component } from "react";
 import { BrowserRouter as Router, Route } from "react-router-dom";
 class App extends Component {
@@ -26,6 +27,10 @@ class App extends Component {
           <Route path="/battleGround">
             {" "}
             <BattleGround />{" "}
+          </Route>
+          <Route path="/battleGroundAI">
+            {" "}
+            <BattleGroundAI />{" "}
           </Route>
         </Router>
       </div>

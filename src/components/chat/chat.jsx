@@ -1,10 +1,11 @@
 import React, { Component } from "react";
 import "bootstrap/dist/css/bootstrap.css";
-import { Row, Container, Modal, Button } from "react-bootstrap";
+import { Row, Col, Container, Modal, Button } from "react-bootstrap";
 import "./chat.css";
 import logo from "./chatImg.jpg";
 import io from "socket.io-client";
 import { SiRiotgames } from "react-icons/si";
+import { SiGooglemessages } from "react-icons/si";
 var uniqid = require("uniqid");
 const connOpt = {
   transports: ["websocket"], // socket connectin options
@@ -17,8 +18,9 @@ class Chat extends Component {
     this.state = {
       onlineProfiles: [],
       msg: "",
-      me: "",
+      me: {},
       to: "",
+      toProfilePic: "",
       convo: [],
       showConvos: false,
       convoId: "",
@@ -27,7 +29,12 @@ class Chat extends Component {
     };
   }
 
-  loadPreviousConvo = async (name) => {
+  loadPreviousConvo = async (profile) => {
+    const name = profile.name;
+    if (profile.name !== profile.pic) {
+      console.log("profilePic ->", profile.pic);
+      this.setState({ convoOtherPic: profile.pic });
+    }
     const url = process.env.REACT_APP_URL + "/convos/getConvo";
     await fetch(url, {
       method: "POST",
@@ -43,6 +50,7 @@ class Chat extends Component {
       .then((response) => response.json())
       .then((data) => this.handleDataUpdate(data));
     this.setState({ to: name });
+    this.getProfilePic();
   };
   handleDataUpdate = (data) => {
     console.log("id -----> ", data._id);
@@ -112,7 +120,7 @@ class Chat extends Component {
           like: "sent",
         })
       );
-    this.loadPreviousConvo(this.state.to);
+    this.loadPreviousConvo({ name: this.state.to, profilePic: this.state.to });
   };
   componentWillUnmount = async () => {
     await this.logOut();
@@ -129,6 +137,7 @@ class Chat extends Component {
     if (challange.from === localStorage.getItem("username")) {
       this.setState({ currentChallange: challange });
       this.setState({ showInviteModal: false });
+      localStorage.setItem("battleId", challange.id);
       window.location = "/battleground";
     }
   };
@@ -150,13 +159,25 @@ class Chat extends Component {
       }),
     })
       .then((response) => response.json())
-      .then((data) => console.log(data));
+      .then((data) => localStorage.setItem("battleId", data));
+    challage.id = localStorage.getItem("battleId");
     socket.emit("acceptChallange", challage);
 
     window.location = "/battleground";
   };
+  handleNewLogin = async (user) => {
+    var isTheUserLogged = false;
+    this.state.onlineProfiles.forEach((profile) =>
+      profile.name === user.name ? (isTheUserLogged = true) : <></>
+    );
+    if (!isTheUserLogged) {
+      this.setState({ onlineProfiles: this.state.onlineProfiles.concat(user) });
+    }
+  };
   componentDidMount = async () => {
-    socket.on("sendMsg", (msg) => this.loadPreviousConvo(this.state.to));
+    socket.on("sendMsg", (msg) =>
+      this.loadPreviousConvo({ name: this.state.to, pic: this.state.to })
+    );
     socket.on("challange", (challange) => this.handleChallange(challange));
     socket.on("acceptChallange", (challange) =>
       this.handleAcceptChallange(challange)
@@ -168,11 +189,36 @@ class Chat extends Component {
         ),
       })
     );
-    socket.on("login", (user) =>
-      this.setState({ onlineProfiles: this.state.onlineProfiles.concat(user) })
-    );
+    socket.on("login", (user) => this.handleNewLogin(user));
     console.log(this.state.onlineProfiles);
     this.getOnlineProfiles();
+    this.getMe();
+  };
+  getMe = async () => {
+    const url = process.env.REACT_APP_URL + "/profiles/getMe";
+    await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => this.setState({ me: data }));
+  };
+  getProfilePic = async () => {
+    const url =
+      process.env.REACT_APP_URL + "/profiles/getProfilePic/" + this.state.to;
+    await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => this.setState({ toProfilePic: data }));
+    console.log("done");
   };
   sendChallange = async (to) => {
     var challange = { from: localStorage.getItem("username"), to: to };
@@ -206,11 +252,16 @@ class Chat extends Component {
         </p>
         <Container>
           <Row className="logoRow d-flex justify-content-center ">
-            <img src={logo} />
+            {" "}
+            <img src={logo} />{" "}
           </Row>{" "}
-          <h className="pplOnline d-flex justify-content-center">
-            People Online{" "}
-          </h>
+          <Row className="pplOnline d-flex justify-content-center">
+            <Col xs={4}> </Col> <Col xs={4}> People Online </Col>{" "}
+            <Col xs={4}>
+              {" "}
+              <button className="gameAI" onClick = {()=>window.location = "battlegroundAI"}> Play Against A.I. </button>
+            </Col>
+          </Row>
           <Container className="onlineProfiles">
             {this.state.onlineProfiles
               .filter(
@@ -219,13 +270,22 @@ class Chat extends Component {
               .map((profile) => (
                 <Row
                   className="profileRow d-flex justify-content-center"
-                  // onClick={() => this.loadPreviousConvo(profile.name)}
+                  //
                 >
                   <p className="onlineUser">
                     <h>{profile.name}</h>{" "}
                     <SiRiotgames
                       className="challangeIcon"
                       onClick={() => this.sendChallange(profile.name)}
+                    />
+                    <SiGooglemessages
+                      className="challangeIcon"
+                      onClick={() =>
+                        this.loadPreviousConvo({
+                          name: profile.name,
+                          pic: profile.profilePic,
+                        })
+                      }
                     />
                   </p>
                 </Row>
@@ -237,7 +297,11 @@ class Chat extends Component {
               ? "Select someone to chat with"
               : "Your chat with " + this.state.to}{" "}
           </h>
-          <Container className="chatContainer mt-3">
+          <Container
+            className={
+              this.state.to === "" ? "visually-hidden" : "chatContainer mt-3"
+            }
+          >
             {this.state.convo.map((msg) => (
               <Row onDoubleClick={() => this.sendLike(msg.uniqId)}>
                 <p
@@ -248,7 +312,7 @@ class Chat extends Component {
                   }
                 >
                   <h className="borderClass">{msg.message}</h>
-                  <img src={msg.from[0]} className="profilePic1" />
+                  <img src={this.state.me.profilePic} className="profilePic1" />
                 </p>
                 <p
                   className={
@@ -257,7 +321,7 @@ class Chat extends Component {
                       : " msgRow "
                   }
                 >
-                  <img src={msg.from[0]} className="profilePic2" />
+                  <img src={this.state.convoOtherPic} className="profilePic2" />
                   <h className="borderClass2">{msg.message}</h>
                 </p>
               </Row>

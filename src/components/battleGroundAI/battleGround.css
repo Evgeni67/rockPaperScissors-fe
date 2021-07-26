@@ -16,6 +16,13 @@
         border:1px solid #0f0f0f;
         height: 180px;
 }
+.gameAI{
+  font-size:13px;
+  background-color: #00ff84;
+  border:none;
+  border-radius: 0px  10px  10px  0px;
+  font-weight: 500;
+}
 .enemyCard2{
     background-color: gray;
     width: 100px;

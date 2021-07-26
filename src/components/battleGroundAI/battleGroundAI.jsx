@@ -12,43 +12,16 @@ const connOpt = {
 };
 
 let socket = io(process.env.REACT_APP_URL, connOpt); //socket instance
-class BattleGround extends Component {
+class BattleGroundAI extends Component {
   constructor() {
     super();
     this.state = {
-      convo: [],
-      convoId: "",
-      currentChallange: {},
       loading: true,
-      currentBattle: {},
-      player1: false,
-      currentCard: "",
-      isEnemyReady: false,
       myCard: "",
       whoWins: "",
       enemyCard: "",
     };
   }
-  componentDidMount = async () => {
-    socket.on("placeCard", (move) => this.handlePlaceCard(move));
-  };
-  loadPreviousConvo = async (name) => {
-    const url = process.env.REACT_APP_URL + "/convos/getConvo";
-    await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-      },
-      body: JSON.stringify({
-        to: name,
-        message: this.state.msg,
-      }),
-    })
-      .then((response) => response.json())
-      .then((data) => this.handleDataUpdate(data));
-    this.setState({ to: name });
-  };
 
   logOut = async (id) => {
     console.log(process.env.REACT_APP_URL);
@@ -64,143 +37,47 @@ class BattleGround extends Component {
     socket.emit("logOut", localStorage.getItem("username"));
     window.location = "/login";
   };
-  sendMsg = async () => {
-    const url = process.env.REACT_APP_URL + "/convos/sendMsg";
-    await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-      },
-      body: JSON.stringify({
-        from: [this.state.me, localStorage.getItem("username")],
-        to: this.state.to,
-        message: this.state.msg,
-        isLiked: false,
-        uniqId: uniqid(),
-      }),
-    })
-      .then((response) => response.json())
-      .then((data) => console.log(data));
-    socket.emit("sendMsg", {
-      //emitting an event with a payload to send the message to all connected users
-      from: [this.state.me, localStorage.getItem("username")],
-      to: this.state.to,
-      message: this.state.msg,
-      isLiked: false,
-      uniqId: uniqid(),
-    });
-    document.querySelector(".msgInput").value = "";
-  };
 
   componentWillUnmount = async () => {
     await this.logOut();
   };
 
-  handleChallange = async (challange) => {
-    console.log("challange");
-    if (challange.to === localStorage.getItem("username")) {
-      this.setState({ currentChallange: challange });
-      this.setState({ showInviteModal: true });
-    }
-  };
   sendCard = async (card) => {
-    console.log("sending card...")
-    this.setState({ currentCard: card });
-    const url =
-      process.env.REACT_APP_URL +
-      "/battles/addCard/" +
-      localStorage.getItem("battleId");
-    await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-      },
-      body: JSON.stringify({
-        playerCard: card,
-        isPlayer1: this.state.player1,
-      }),
-    })
-      .then((response) => response.json())
-      .then((data) => this.setState({ currentBattle: data }));
-    if (this.state.player1) {
-      this.setState({ myCard: this.state.currentBattle.player1Card });
+    this.setState({ myCard: card });
+    console.log(card);
+    const randomNumber = Math.floor(Math.random() * 3);
+    var enemyCard = ""
+    if (randomNumber === 0) {
+      this.setState({ enemyCard: "R" });
+      enemyCard = "R"
+      console.log(" is R " );
+    } else if (randomNumber === 1) {
+      this.setState({ enemyCard: "P" });
+      enemyCard = "P"
+      console.log(" is P" );
     } else {
-      this.setState({ myCard: this.state.currentBattle.player2Card });
+      this.setState({ enemyCard: "S" });
+      enemyCard = "S"
+      console.log(" is S " );
     }
-    if (this.state.player1) {
-      var move = { to: this.state.currentBattle.player2 };
-      socket.emit("placeCard", move);
+    console.log(card + " vs " + enemyCard);
+    if (card === "R" && enemyCard === "S") {
+    } else if (card=== "R" && enemyCard === "P") {
+      this.setState({ whoWins: "You win" });
+    } else if (card === "S" &&enemyCard === "P") {
+      this.setState({ whoWins: "You win" });
+    } else if (card === "P" && enemyCard === "R") {
+      this.setState({ whoWins: "You lose" });
+    } else if (card === "P" && enemyCard === "S") {
+      this.setState({ whoWins: "You lose" });
+    } else if (card === "S" && enemyCard === "R") {
+      this.setState({ whoWins: "You lose" });
     } else {
-      var move = { to: this.state.currentBattle.player1 };
-      socket.emit("placeCard", move);
-    }
-    if (this.state.isEnemyReady) {
-      const url =
-        process.env.REACT_APP_URL +
-        "/battles/getResult/" +
-        this.state.currentBattle._id;
-      await fetch(url, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-      })
-        .then((response) => response.json())
-        .then((data) => this.handleEndOfGame(data));
-    }
-   
-  };
-  handleEndOfGame = async (data) => {
-    this.setState({ whoWins: data.whoWins });
-    if (this.state.player1) {
-      this.setState({ enemyCard: data.player2Card });
-    } else {
-      this.setState({ enemyCard: data.player1Card });
-    }
-  };
-  getBattle = async () => {
-    const url = process.env.REACT_APP_URL + "/battles/getBattle/" + localStorage.getItem("battleId");
-    console.log("processing");
-    await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-      },
-    })
-      .then((response) => response.json())
-      .then((data) => this.setState({ currentBattle: data }));
-  };
-  handlePlacedCard = async (move) => {
-    if (move.to === localStorage.getItem("username")) {
-      this.setState({ isEnemyReady: true });
-      console.log("CARD PLACED");
-      if (this.state.myCard !== "") {
-        const url =
-          process.env.REACT_APP_URL +
-          "/battles/getResult/" +
-          localStorage.getItem("battleId");
-        await fetch(url, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-        })
-          .then((response) => response.json())
-          .then((data) => this.handleEndOfGame(data));
-      }
+      this.setState({ whoWins: "Tie" });
     }
   };
 
   componentDidMount = async () => {
-    socket.on("placeCard", (move) => this.handlePlacedCard(move));
-    await this.getBattle();
-    if (this.state.currentBattle.player1 === localStorage.getItem("username")) {
-      this.setState({ player1: true });
-    }
     const that = this;
     setTimeout(function () {
       that.setState({ loading: false });
@@ -236,9 +113,7 @@ class BattleGround extends Component {
               {" "}
               <Container>
                 <Row className="enemyName d-flex justify-content-center">
-                  {this.state.player1
-                    ? this.state.currentBattle.player2
-                    : this.state.currentBattle.player1}
+                  A.I.
                 </Row>
                 <Row className="d-flex justify-content-center mt-3">
                   <Row className="d-flex justify-content-center">
@@ -317,9 +192,7 @@ class BattleGround extends Component {
                   </Col>
                 </Row>
                 <Row className="myName d-flex justify-content-center mt-3">
-                  {this.state.player1
-                    ? this.state.currentBattle.player1
-                    : this.state.currentBattle.player2}
+                  {localStorage.getItem("username")}
                 </Row>
               </Container>
             </Col>
@@ -344,12 +217,12 @@ class BattleGround extends Component {
                 <p>Your card</p>{" "}
               </Col>
               <Col sm={2} className="d-flex justify-content-center">
-                {this.state.currentCard === "R" ? (
+                {this.state.myCard === "R" ? (
                   <img
                     src="https://jowaynejosephs.github.io/Rock-Paper-Scissors/img/rock.png"
                     className="yourCard"
                   />
-                ) : this.state.currentCard === "P" ? (
+                ) : this.state.myCard === "P" ? (
                   <img
                     src="https://freepikpsd.com/media/2019/10/rock-paper-scissors-png-2-Transparent-Images.png"
                     className="yourCard"
@@ -362,16 +235,7 @@ class BattleGround extends Component {
                 )}
               </Col>
               <Col sm={2} className="finishText d-flex justify-content-center">
-                {" "}
-                {this.state.whoWins === "player1Wins"
-                  ? this.state.player1
-                    ? "You win"
-                    : "You lose"
-                  : this.state.whoWins === "player2Wins"
-                  ? this.state.player1
-                    ? "You lose"
-                    : "You win"
-                  : "Tie"}{" "}
+                {this.state.whoWins}
               </Col>
               <Col sm={2} className="d-flex justify-content-center">
                 {this.state.enemyCard === "R" ? (
@@ -417,4 +281,4 @@ class BattleGround extends Component {
     );
   }
 }
-export default BattleGround;
+export default BattleGroundAI;

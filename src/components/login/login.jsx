@@ -62,7 +62,7 @@ class Login extends Component {
   addPicToUser = async () => {
     let post = new FormData();
     post.append("postPic", this.state.image);
-    const url = process.env.REACT_APP_URL + "/profiles/addPictureToProfile/" + this.state.id;
+    const url = process.env.REACT_APP_URL + "/profiles/addProfilePic/" + this.state.id;
     const requestOptions = {
       method: "POST",
       headers: {
@@ -70,10 +70,11 @@ class Login extends Component {
       },
       body: post,
     };
-    await fetch(url, requestOptions).then((response) => console.log(response.json()));
+    await fetch(url, requestOptions).then((response) => response.json()).then((data)=>localStorage.setItem("profilePic",data));
     this.setState({showLoginBtn:false})
   };
   register = async () => {
+    console.log(this.state.image)
     this.setState({ registering: true });
     this.setState({imageUploaded:false})
     const url = process.env.REACT_APP_URL + "/profiles/register";
@@ -92,7 +93,7 @@ class Login extends Component {
     await fetch(url, requestOptions)
       .then((response) => response.json())
       .then((data) => this.setState({ id: data }));
-      this.addPicToUser()
+     await this.addPicToUser()
       console.log(this.state.id)
     const that = this;
     setTimeout(function () {
