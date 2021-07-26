@@ -67,7 +67,7 @@ class BattleGroundAI extends Component {
     } else if (card === "S" &&enemyCard === "P") {
       this.setState({ whoWins: "You win" });
     } else if (card === "P" && enemyCard === "R") {
-      this.setState({ whoWins: "You lose" });
+      this.setState({ whoWins: "You win" });
     } else if (card === "P" && enemyCard === "S") {
       this.setState({ whoWins: "You lose" });
     } else if (card === "S" && enemyCard === "R") {
