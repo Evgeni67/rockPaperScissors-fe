@@ -191,16 +191,13 @@ class BattleGroundAI extends Component {
                     />
                   </Col>
                 </Row>
-                <Row className="myName d-flex justify-content-center mt-3">
-                  {localStorage.getItem("username")}
-                </Row>
+             
               </Container>
             </Col>
             <Col
               className="col-xs-6 order-xs-2 d-flex justify-content-center"
               sm={12}
             >
-              timer
             </Col>{" "}
           </Row>
         </Container>
