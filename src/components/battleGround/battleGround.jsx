@@ -24,6 +24,9 @@ class BattleGround extends Component {
       player1: false,
       currentCard: "",
       isEnemyReady: false,
+      myCard: "",
+      whoWins: "",
+      enemyCard: "",
     };
   }
   componentDidMount = async () => {
@@ -102,8 +105,7 @@ class BattleGround extends Component {
     }
   };
   sendCard = async (card) => {
-        var move =  { to: this.state.currentBattle.player2 }
-        socket.emit("placeCard", move);
+    this.setState({ currentCard: card });
     const url =
       process.env.REACT_APP_URL +
       "/battles/addCard/" +
@@ -121,8 +123,42 @@ class BattleGround extends Component {
     })
       .then((response) => response.json())
       .then((data) => this.setState({ currentBattle: data }));
+    if (this.state.player1) {
+      this.setState({ myCard: this.state.currentBattle.player1Card });
+    } else {
+      this.setState({ myCard: this.state.currentBattle.player2Card });
+    }
 
- 
+    if (this.state.isEnemyReady) {
+      const url =
+        process.env.REACT_APP_URL +
+        "/battles/getResult/" +
+        this.state.currentBattle._id;
+      await fetch(url, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+      })
+        .then((response) => response.json())
+        .then((data) => this.handleEndOfGame(data));
+    }
+    if (this.state.player1) {
+      var move = { to: this.state.currentBattle.player2 };
+      socket.emit("placeCard", move);
+    } else {
+      var move = { to: this.state.currentBattle.player1 };
+      socket.emit("placeCard", move);
+    }
+  };
+  handleEndOfGame = async (data) => {
+    this.setState({ whoWins: data.whoWins });
+    if (this.state.player1) {
+      this.setState({ enemyCard: data.player2Card });
+    } else {
+      this.setState({ enemyCard: data.player1Card });
+    }
   };
   getBattle = async () => {
     const url = process.env.REACT_APP_URL + "/battles/getBattle";
@@ -140,12 +176,26 @@ class BattleGround extends Component {
     if (move.to === localStorage.getItem("username")) {
       this.setState({ isEnemyReady: true });
       console.log("CARD PLACED");
+      if (this.state.myCard !== "") {
+        const url =
+          process.env.REACT_APP_URL +
+          "/battles/getResult/" +
+          this.state.currentBattle._id;
+        await fetch(url, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        })
+          .then((response) => response.json())
+          .then((data) => this.handleEndOfGame(data));
+      }
     }
   };
 
-
   componentDidMount = async () => {
-      socket.on("placeCard", (move) => this.handlePlacedCard(move))
+    socket.on("placeCard", (move) => this.handlePlacedCard(move));
     await this.getBattle();
     if (this.state.currentBattle.player1 === localStorage.getItem("username")) {
       this.setState({ player1: true });
@@ -280,6 +330,69 @@ class BattleGround extends Component {
             </Col>{" "}
           </Row>
         </Container>
+        <Modal
+          show={this.state.whoWins !== "" ? true : false}
+          backdrop="static"
+          s
+          keyboard={false}
+        >
+          <Modal.Body className="modalBody d-flex justify-content-center">
+            <Row>
+              <Col sm={3} className="d-flex justify-content-center">
+                {" "}
+                <p>Your card</p>{" "}
+              </Col>
+              <Col sm={2} className="d-flex justify-content-center">
+              {this.state.currentCard === "R" ? (
+                  <img
+                    src="https://jowaynejosephs.github.io/Rock-Paper-Scissors/img/rock.png"
+                    className="yourCard"
+                  />
+                ) : 
+                  this.state.currentCard === "P" ? (     <img
+                    src="https://freepikpsd.com/media/2019/10/rock-paper-scissors-png-2-Transparent-Images.png"
+                    className="yourCard"
+                  /> ) : (  <img
+                    src="https://jowaynejosephs.github.io/Rock-Paper-Scissors/img/scissors.png"
+                    className="yourCard"
+                  />)
+                }
+              </Col>
+              <Col sm={2} className="d-flex justify-content-center">
+                {" "}
+                {this.state.whoWins === "player1Wins"
+                  ? this.state.player1
+                    ? "You win"
+                    : "You lose"
+                  : this.state.whoWins === "player2Wins"
+                  ? this.state.player1
+                    ? "You lose"
+                    : "You win"
+                  : "Tie"}{" "}
+              </Col>
+              <Col sm={2} className="d-flex justify-content-center">
+                {this.state.enemyCard === "R" ? (
+                  <img
+                    src="https://jowaynejosephs.github.io/Rock-Paper-Scissors/img/rock.png"
+                    className="enemyCard"
+                  />
+                ) : 
+                  this.state.enemyCard === "P" ? (     <img
+                    src="https://freepikpsd.com/media/2019/10/rock-paper-scissors-png-2-Transparent-Images.png"
+                    className="enemyCard"
+                  /> ) : (  <img
+                    src="https://jowaynejosephs.github.io/Rock-Paper-Scissors/img/scissors.png"
+                    className="enemyCard"
+                  />)
+                }
+              </Col> 
+              <Col sm={3} className="d-flex justify-content-center">
+                {" "}
+                <p>Enemy card</p>{" "}
+              </Col>
+            </Row>
+          </Modal.Body>
+        </Modal>
       </>
     );
   }
