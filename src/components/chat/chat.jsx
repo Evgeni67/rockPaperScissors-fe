@@ -259,7 +259,13 @@ class Chat extends Component {
             <Col xs={4}> </Col> <Col xs={4}> People Online </Col>{" "}
             <Col xs={4}>
               {" "}
-              <button className="gameAI" onClick = {()=>window.location = "battlegroundAI"}> Play Against A.I. </button>
+              <button
+                className="gameAI"
+                onClick={() => (window.location = "battlegroundAI")}
+              >
+                {" "}
+                Play Against A.I.{" "}
+              </button>
             </Col>
           </Row>
           <Container className="onlineProfiles">
