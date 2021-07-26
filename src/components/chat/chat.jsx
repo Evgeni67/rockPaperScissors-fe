@@ -1,16 +1,16 @@
 import React, { Component } from "react";
 import "bootstrap/dist/css/bootstrap.css";
-import { Row, Container } from "react-bootstrap";
+import { Row, Container, Modal, Button } from "react-bootstrap";
 import "./chat.css";
 import logo from "./chatImg.jpg";
 import io from "socket.io-client";
-import {SiRiotgames} from "react-icons/si"
+import { SiRiotgames } from "react-icons/si";
 var uniqid = require("uniqid");
 const connOpt = {
   transports: ["websocket"], // socket connectin options
 };
 
-let socket = io("https://chatio-backend.herokuapp.com/", connOpt); //socket instance
+let socket = io(process.env.REACT_APP_URL, connOpt); //socket instance
 class Chat extends Component {
   constructor() {
     super();
@@ -21,10 +21,12 @@ class Chat extends Component {
       to: "",
       convo: [],
       showConvos: false,
-      convoId:""
+      convoId: "",
+      showInviteModal: false,
+      currentChallange: {},
     };
   }
-  
+
   loadPreviousConvo = async (name) => {
     const url = process.env.REACT_APP_URL + "/convos/getConvo";
     await fetch(url, {
@@ -43,10 +45,10 @@ class Chat extends Component {
     this.setState({ to: name });
   };
   handleDataUpdate = (data) => {
-    console.log("id -----> ", data._id)
-    this.setState({convo:data.messages})
-    this.setState({convoId:data._id})
-  }
+    console.log("id -----> ", data._id);
+    this.setState({ convo: data.messages });
+    this.setState({ convoId: data._id });
+  };
   logOut = async (id) => {
     console.log(process.env.REACT_APP_URL);
     const url = process.env.REACT_APP_URL + "/profiles/logOut";
@@ -90,27 +92,74 @@ class Chat extends Component {
     document.querySelector(".msgInput").value = "";
   };
   sendLike = async (msgId) => {
-  console.log("msgId ->" + msgId)
-    const url = process.env.REACT_APP_URL + "/convos/sendLike/" + this.state.convoId + "/" + msgId;
+    console.log("msgId ->" + msgId);
+    const url =
+      process.env.REACT_APP_URL +
+      "/convos/sendLike/" +
+      this.state.convoId +
+      "/" +
+      msgId;
     await fetch(url, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
     })
       .then((response) => response.json())
-      .then((data) =>    socket.emit("sendLike", {
-        //emitting an event with a payload to send the message to all connected users
-        like:"sent"
-      }));
-      this.loadPreviousConvo(this.state.to)
+      .then((data) =>
+        socket.emit("sendLike", {
+          //emitting an event with a payload to send the message to all connected users
+          like: "sent",
+        })
+      );
+    this.loadPreviousConvo(this.state.to);
   };
   componentWillUnmount = async () => {
     await this.logOut();
   };
+  handleChallange = async (challange) => {
+    console.log("challange");
+    if (challange.to === localStorage.getItem("username")) {
+      this.setState({ currentChallange: challange });
+      this.setState({ showInviteModal: true });
+    }
+  };
+  handleAcceptChallange = async (challange) => {
+    console.log("acceptedChallange");
+    if (challange.from === localStorage.getItem("username")) {
+      this.setState({ currentChallange: challange });
+      this.setState({ showInviteModal: false });
+      window.location = "/battleground";
+    }
+  };
+
+  acceptChallange = async (challage) => {
+    const url = process.env.REACT_APP_URL + "/battles/startBattle";
+    await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+      },
+      body: JSON.stringify({
+        player1: this.state.currentChallange.from,
+        player1Card: "-",
+        player2: "-",
+        player2Card: "-",
+        isFinished: false,
+      }),
+    })
+      .then((response) => response.json())
+      .then((data) => console.log(data));
+    socket.emit("acceptChallange", challage);
+
+    window.location = "/battleground";
+  };
   componentDidMount = async () => {
-    socket.on("sendMsg", (msg) =>
-     this.loadPreviousConvo(this.state.to)
+    socket.on("sendMsg", (msg) => this.loadPreviousConvo(this.state.to));
+    socket.on("challange", (challange) => this.handleChallange(challange));
+    socket.on("acceptChallange", (challange) =>
+      this.handleAcceptChallange(challange)
     );
     socket.on("logOut", (name) =>
       this.setState({
@@ -122,10 +171,19 @@ class Chat extends Component {
     socket.on("login", (user) =>
       this.setState({ onlineProfiles: this.state.onlineProfiles.concat(user) })
     );
-  this.getOnlineProfiles()
+    console.log(this.state.onlineProfiles);
+    this.getOnlineProfiles();
   };
-  getOnlineProfiles =async  () => {
-    console.log("online profiles")
+  sendChallange = async (to) => {
+    var challange = { from: localStorage.getItem("username"), to: to };
+    console.log(challange);
+    socket.emit("challange", challange);
+  };
+  getOnlineProfiles = async () => {
+    console.log(localStorage.getItem("username"));
+
+    socket.emit("login", localStorage.getItem("username"));
+    console.log("online profiles");
     const url = process.env.REACT_APP_URL + "/profiles/getOnlineProfiles";
     const requestOptions = {
       method: "GET",
@@ -135,8 +193,8 @@ class Chat extends Component {
     };
     await fetch(url, requestOptions)
       .then((response) => response.json())
-      .then((data) => this.setState({onlineProfiles:data}));
-  }
+      .then((data) => this.setState({ onlineProfiles: data }));
+  };
   render() {
     return (
       <>
@@ -161,10 +219,14 @@ class Chat extends Component {
               .map((profile) => (
                 <Row
                   className="profileRow d-flex justify-content-center"
-                  onClick={() => this.loadPreviousConvo(profile.name)}
+                  // onClick={() => this.loadPreviousConvo(profile.name)}
                 >
                   <p className="onlineUser">
-                    <h>{profile.name}</h> <SiRiotgames className = "challangeIcon"/>
+                    <h>{profile.name}</h>{" "}
+                    <SiRiotgames
+                      className="challangeIcon"
+                      onClick={() => this.sendChallange(profile.name)}
+                    />
                   </p>
                 </Row>
               ))}
@@ -223,6 +285,27 @@ class Chat extends Component {
             )}
           </Container>
         </Container>
+        <Modal
+          show={this.state.showInviteModal}
+          backdrop="static"
+          keyboard={false}
+        >
+          <Modal.Body className="modalBody d-flex justify-content-center">
+            <button
+              className="denyBtn"
+              onClick={() => this.setState({ showInviteModal: false })}
+            >
+              Reject
+            </button>{" "}
+            {this.state.currentChallange.from} Has invited you to play
+            <button
+              className="acceptButton"
+              onClick={() => this.acceptChallange(this.state.currentChallange)}
+            >
+              Accept
+            </button>
+          </Modal.Body>
+        </Modal>
       </>
     );
   }

@@ -21,10 +21,8 @@ class Login extends Component {
     image: "",
     id : ""
   };
-  saveTokensLocally = (data1) => {
+  saveTokensLocally = async (data1) => {
     try{
-
-    
     console.log(data1);
     const data = data1[0];
     console.log("TOKENS", data);
@@ -32,7 +30,7 @@ class Login extends Component {
     localStorage.setItem("refreshToken", data.refreshToken);
     localStorage.setItem("username", this.state.name);
     this.setState({ logged: true });
-    socket.emit("login", data1[1]);
+
     window.location = "/chat";
   }catch(e){
     alert("Wrong password")
